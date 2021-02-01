@@ -6,6 +6,7 @@
 /* -------------------------------- */
 
 // VARIABLES:
+var options;
 var connection;
 var iframeChild;
 var test_jwk;
@@ -118,7 +119,9 @@ function openLoginModal(e) {
           return closeModal();
         },
         overwriteArweaveMethods() {
-          return overwriteArweaveMethods();
+          if (options.overwriteArweaveMethods) {
+            return overwriteArweaveMethods();
+          }
         },
         returnAddress(addy) {
           resolve(addy); // This returns the wallet's address on first successful login
@@ -138,7 +141,16 @@ function openLoginModal(e) {
 }
 
 // INIT:
-function init() {
+/**
+ * @param opt {
+ *   overwriteArweaveMethods: boolean = true
+ * }
+ */
+function init(opt) {
+  options = {
+    overwriteArweaveMethods: opt?.overwriteArweaveMethods || true
+  };
+
   // TODO: Add ability to pass-i ncustom "arweave" obj
   // Import animate.css for animations:
   loadStyle("https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.0.0/animate.min.css");
@@ -214,8 +226,10 @@ function setChild(child) {
 
 function createTransaction(data, cb) {
   var iframeResult = iframeChild.arweaveCreateTransaction(data, cb);
+  // Use the original arweave.createTransaction function even when overwriteArweaveMethods has been enabled
+  var createTransactionFn = options.overwriteArweaveMethods ? arweave.oldCreateTransaction : arweave.createTransaction;
   // TODO: As explained in the TODO above, this transaction is never sent. It is just used to temporarily create an object with Transactio class. Otherwise, the signMessage() method will fail.
-  var dummyTx = arweave.oldCreateTransaction({ target: '1seRanklLU_1VTGkEk7P0xAwMJfA7owA1JHW5KyZKlY', quantity: arweave.ar.arToWinston('0.0005') }, test_jwk);
+  var dummyTx = createTransactionFn({ target: '1seRanklLU_1VTGkEk7P0xAwMJfA7owA1JHW5KyZKlY', quantity: arweave.ar.arToWinston('0.0005') }, test_jwk);
   return Promise.all([iframeResult, dummyTx]).then((values) => {
     var temp = values[1];
     Object.keys(values[0]).forEach(function(key) {
